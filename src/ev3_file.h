@@ -22,9 +22,9 @@ extern "C" {
 #endif // EV3_FILE_DEBUG
 
 EV3_INLINE int
-ev3_file_fopen (const char  *path,
-                const char  *mode,
-                FILE       **pfp)
+ev3_fopen (const char  *path,
+           const char  *mode,
+           FILE       **pfp)
 {
 	int e, r;
 	FILE *fp;
@@ -48,10 +48,10 @@ ev3_file_fopen (const char  *path,
 }
 
 EV3_INLINE int
-ev3_file_fread (FILE    *fp,
-                uint8_t *buf,
-                size_t   buf_len,
-                size_t  *read_len)
+ev3_fread (FILE    *fp,
+           uint8_t *buf,
+           size_t   buf_len,
+           size_t  *read_len)
 {
 	int e = errno, r = 0;
 	size_t n = 0;
@@ -90,8 +90,8 @@ ev3_file_fread (FILE    *fp,
 }
 
 EV3_INLINE int
-ev3_file_fileno (FILE *fp,
-                 int  *pfd)
+ev3_fileno (FILE *fp,
+            int  *pfd)
 {
 	int e, r;
 	int fd;
@@ -115,7 +115,7 @@ ev3_file_fileno (FILE *fp,
 }
 
 EV3_INLINE int
-ev3_file_fclose (FILE **pfp)
+ev3_fclose (FILE **pfp)
 {
 	int e, r;
 

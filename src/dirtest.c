@@ -25,16 +25,15 @@ read_file (char   *path,
 	int err;
 	FILE *fp;
 
-	if ((err = ev3_file_fopen ((const char *)path, "r", &fp))) {
+	if ((err = ev3_fopen ((const char *)path, "r", &fp))) {
 		ERR_ (-1, "Can't open %s: %s", path, strerror (err));
 
 	} else {
-		if ((err = ev3_file_fread (fp, (uint8_t *)buf,
-		                           buf_len, &len))) {
+		if ((err = ev3_fread (fp, (uint8_t *)buf, buf_len, &len))) {
 			ERR_ (-2, "Can't read %s: %s", path, strerror (err));
 		}
 
-		if ((err = ev3_file_fclose (&fp))) {
+		if ((err = ev3_fclose (&fp))) {
 			ERR_ (-1, "Can't close %s: %s", path, strerror (err));
 		}
 	}
