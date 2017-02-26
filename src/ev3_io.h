@@ -225,7 +225,7 @@ ev3_realpath (const char *path,
 	if (realpath (path, dest) == NULL) {
 		r = errno;
 #ifdef EV3_IO_DEBUG
-		ERR_ (-3, "realpath(\"%s\"): %s", path, strerror (errno));
+		ERR_ (-3, "realpath(\"%s\"): %s", path, strerror (r));
 #endif // EV3_IO_DEBUG
 	} else {
 		r = 0;
