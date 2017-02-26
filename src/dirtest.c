@@ -85,8 +85,8 @@ ev3_syspath_find_devices (const char *subdir,
 	}
 
 	for (struct dirent *ent;;) {
-		errno = 0;
-		if (!(ent = readdir (dir))) {
+		(void)ev3_readdir (dir, &ent);
+		if (ent == NULL) {
 			break;
 		}
 
@@ -158,10 +158,6 @@ ev3_syspath_find_devices (const char *subdir,
 		}
 
 		free (port_path_buf);
-	}
-
-	if (errno != 0) {
-		ERR ("readdir(): %s", strerror (errno));
 	}
 
 _done:
