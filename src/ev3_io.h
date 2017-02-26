@@ -9,6 +9,7 @@ extern "C" {
 
 #include <stdio.h>   // FILE, fopen(), fileno(), fread(), ferror(), feof(), fclose()
 #include <errno.h>   // errno
+#include <limits.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -130,6 +131,29 @@ ev3_fclose (FILE **pfp)
 	} else {
 		r = 0;
 		*pfp = NULL;
+	}
+
+	errno = e;
+
+	return r;
+}
+
+EV3_INLINE int
+ev3_realpath (const char *path,
+              char       *dest)
+{
+	int e, r;
+
+	e = errno;
+	errno = 0;
+
+	if (realpath (path, dest) == NULL) {
+		r = errno;
+#ifdef EV3_IO_DEBUG
+		ERR_ (-3, "realpath(\"%s\"): %s", path, strerror (errno));
+#endif // EV3_IO_DEBUG
+	} else {
+		r = 0;
 	}
 
 	errno = e;

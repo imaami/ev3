@@ -120,16 +120,14 @@ ev3_syspath_find_devices (const char *subdir,
 
 		strncpy (dest, "/driver_name", sizeof ("/driver_name"));
 
-		errno = 0;
-		if (!(dest = realpath ((const char *)path, page_buf))) {
-			ERR ("realpath(\"%s\"): %s", path, strerror (errno));
+		if (ev3_realpath ((const char *)path, page_buf) != 0) {
 		_next_dirent:
 			continue;
 		}
 
-		MSG ("%s -> %s", path, dest);
+		MSG ("%s -> %s", path, page_buf);
 
-		size_t len = strlen (dest);
+		size_t len = strlen (page_buf);
 		size_t alloc_len = len + 5;
 		if ((n = alloc_len & 3)) {
 			alloc_len += 4 - n;
@@ -140,7 +138,7 @@ ev3_syspath_find_devices (const char *subdir,
 			continue;
 		}
 		len -= (sizeof ("driver_name") - 1); // offset for filename
-		strncpy (port_path_buf, dest, alloc_len);
+		strncpy (port_path_buf, page_buf, alloc_len);
 
 		if (read_file (port_path_buf, page_buf, page_size - 1)) {
 			MSG ("driver_name: %s", page_buf);
