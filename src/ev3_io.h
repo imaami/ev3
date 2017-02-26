@@ -14,7 +14,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include <dirent.h>    // DIR, opendir(), readdir()
+#include <dirent.h>    // DIR, opendir(), readdir(), closedir()
 
 #ifndef EV3_IO_DEBUG
 # define EV3_IO_DEBUG
@@ -185,6 +185,29 @@ ev3_readdir (DIR            *dp,
 	}
 
 	*pep = ep;
+	errno = e;
+
+	return r;
+}
+
+EV3_INLINE int
+ev3_closedir (DIR **pdp)
+{
+	int e, r;
+
+	e = errno;
+	errno = 0;
+
+	if (closedir (*pdp) != 0) {
+		r = errno;
+#ifdef EV3_IO_DEBUG
+		ERR_ (-3, "closedir(): %s", strerror (r));
+#endif // EV3_IO_DEBUG
+	} else {
+		r = 0;
+		*pdp = NULL;
+	}
+
 	errno = e;
 
 	return r;

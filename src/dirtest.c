@@ -161,10 +161,7 @@ ev3_syspath_find_devices (const char *subdir,
 	}
 
 _done:
-	errno = 0;
-	if (closedir (dir) != 0) {
-		ERR ("closedir(): %s", strerror (errno));
-	}
+	(void)ev3_closedir (&dir);
 }
 
 EV3_INLINE size_t
