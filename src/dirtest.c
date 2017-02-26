@@ -73,9 +73,7 @@ ev3_syspath_find_devices (const char *subdir,
 	memcpy (&path[off], subdir, subdir_len);
 	path[(off += subdir_len)] = '\0';
 
-	errno = 0;
-	if (!(dir = opendir ((const char *)path))) {
-		ERR ("opendir(\"%s\"): %s", path, strerror (errno));
+	if (ev3_opendir ((const char *)path, &dir) != 0) {
 		return;
 	}
 

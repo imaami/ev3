@@ -13,6 +13,8 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <dirent.h>    // opendir(), DIR
 
 #ifndef EV3_IO_DEBUG
 # define EV3_IO_DEBUG
@@ -131,6 +133,31 @@ ev3_fclose (FILE **pfp)
 	} else {
 		r = 0;
 		*pfp = NULL;
+	}
+
+	errno = e;
+
+	return r;
+}
+
+EV3_INLINE int
+ev3_opendir (const char  *path,
+             DIR        **pdp)
+{
+	int e, r;
+	DIR *dp;
+
+	e = errno;
+	errno = 0;
+
+	if ((dp = opendir (path)) == NULL) {
+		r = errno;
+#ifdef EV3_IO_DEBUG
+		ERR_ (-3, "opendir(\"%s\"): %s", path, strerror (r));
+#endif // EV3_IO_DEBUG
+	} else {
+		r = 0;
+		*pdp = dp;
 	}
 
 	errno = e;
