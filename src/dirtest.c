@@ -13,13 +13,10 @@
 #include <string.h>
 #include <errno.h>
 
-static char *page_buf;
-static size_t page_size;
-
 static size_t
-read_file (char   *path,
-           char   *buf,
-           size_t  buf_len)
+read_file (char    *path,
+           uint8_t *buf,
+           size_t   buf_len)
 {
 	size_t len = 0;
 	int err;
@@ -29,7 +26,7 @@ read_file (char   *path,
 		ERR_ (-1, "Can't open %s: %s", path, strerror (err));
 
 	} else {
-		if ((err = ev3_fread (fp, (uint8_t *)buf, buf_len, &len))) {
+		if ((err = ev3_fread (fp, buf, buf_len, &len))) {
 			ERR_ (-2, "Can't read %s: %s", path, strerror (err));
 		}
 
@@ -38,13 +35,15 @@ read_file (char   *path,
 		}
 	}
 
-	buf[len] = '\0';
+	buf[len] = 0;
 
 	return len;
 }
 
 EV3_INLINE void
-ev3_syspath_find_devices (const char *subdir,
+ev3_syspath_find_devices (uint8_t    *buf,
+                          size_t      buf_len,
+                          const char *subdir,
                           size_t      subdir_len,
                           const char *symlink_prefix,
                           size_t      symlink_prefix_len)
@@ -118,14 +117,14 @@ ev3_syspath_find_devices (const char *subdir,
 
 		strncpy (dest, "/driver_name", sizeof ("/driver_name"));
 
-		if (ev3_realpath ((const char *)path, page_buf) != 0) {
+		if (ev3_realpath ((const char *)path, (char *)buf) != 0) {
 		_next_dirent:
 			continue;
 		}
 
-		MSG ("%s -> %s", path, page_buf);
+		MSG ("%s -> %s", path, (char *)buf);
 
-		size_t len = strlen (page_buf);
+		size_t len = strlen ((const char *)buf);
 		size_t alloc_len = len + 5;
 		if ((n = alloc_len & 3)) {
 			alloc_len += 4 - n;
@@ -136,25 +135,25 @@ ev3_syspath_find_devices (const char *subdir,
 			continue;
 		}
 		len -= (sizeof ("driver_name") - 1); // offset for filename
-		strncpy (port_path_buf, page_buf, alloc_len);
+		strncpy (port_path_buf, (const char *)buf, alloc_len);
 
-		if (read_file (port_path_buf, page_buf, page_size - 1)) {
-			MSG ("driver_name: %s", page_buf);
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("driver_name: %s", (char *)buf);
 		}
 
 		strncpy (&port_path_buf[len], "address", sizeof ("address"));
-		if (read_file (port_path_buf, page_buf, page_size - 1)) {
-			MSG ("address: %s", page_buf);
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("address: %s", (char *)buf);
 		}
 
 		strncpy (&port_path_buf[len], "modes", sizeof ("modes"));
-		if (read_file (port_path_buf, page_buf, page_size - 1)) {
-			MSG ("modes: %s", page_buf);
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("modes: %s", (char *)buf);
 		}
 
 		strncpy (&port_path_buf[len], "commands", sizeof ("commands"));
-		if (read_file (port_path_buf, page_buf, page_size - 1)) {
-			MSG ("commands: %s", page_buf);
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("commands: %s", (char *)buf);
 		}
 
 		free (port_path_buf);
@@ -179,11 +178,11 @@ ev3_page_size (void)
 }
 
 EV3_INLINE bool
-ev3_page_buf_alloc (char   **buf,
-                    size_t  *len)
+ev3_page_buf_alloc (uint8_t **buf,
+                    size_t   *len)
 {
 	size_t _len = ev3_page_size();
-	char *_buf = aligned_alloc (_len, _len);
+	uint8_t *_buf = (uint8_t *)aligned_alloc (_len, _len);
 
 	if (!_buf) {
 		ERR ("aligned_alloc() failed");
@@ -200,6 +199,9 @@ int
 main (int    argc,
       char **argv)
 {
+	uint8_t *page_buf;
+	size_t page_size;
+
 	if (!ev3_page_buf_alloc (&page_buf, &page_size)) {
 		return EXIT_FAILURE;
 	}
@@ -225,7 +227,9 @@ main (int    argc,
 	};
 
 	for (size_t i = 0; i < sizeof (syspaths) / sizeof (syspaths[0]); ++i) {
-		ev3_syspath_find_devices (syspaths[i].subdir,
+		ev3_syspath_find_devices (page_buf,
+		                          page_size,
+		                          syspaths[i].subdir,
 		                          syspaths[i].subdir_len,
 		                          syspaths[i].symlink_prefix,
 		                          syspaths[i].symlink_prefix_len);
