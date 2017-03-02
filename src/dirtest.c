@@ -1,5 +1,6 @@
 #include "ev3_common.h"
 #include "ev3_io.h"
+#include "ev3_syspath.h"
 
 #include <stdio.h>
 #include <stddef.h>
@@ -206,33 +207,15 @@ main (int    argc,
 		return EXIT_FAILURE;
 	}
 
-	const struct {
-		const char *subdir;
-		size_t      subdir_len;
-		const char *symlink_prefix;
-		size_t      symlink_prefix_len;
-	} syspaths[2] = {
-		{
-			.subdir             = "lego-sensor",
-			.subdir_len         = sizeof ("lego-sensor") - 1,
-			.symlink_prefix     = "sensor",
-			.symlink_prefix_len = sizeof ("sensor") - 1
-		},
-		{
-			.subdir             = "tacho-motor",
-			.subdir_len         = sizeof ("tacho-motor") - 1,
-			.symlink_prefix     = "motor",
-			.symlink_prefix_len = sizeof ("motor") - 1
-		}
+	EV3_SYSPATH_LIST(syspaths) {
+		EV3_SYSPATH("lego-sensor", "sensor"),
+		EV3_SYSPATH("tacho-motor", "motor")
 	};
 
 	for (size_t i = 0; i < sizeof (syspaths) / sizeof (syspaths[0]); ++i) {
-		ev3_syspath_find_devices (page_buf,
-		                          page_size,
-		                          syspaths[i].subdir,
-		                          syspaths[i].subdir_len,
-		                          syspaths[i].symlink_prefix,
-		                          syspaths[i].symlink_prefix_len);
+		ev3_syspath_find_devices (page_buf, page_size,
+		                          syspaths[i].dir, syspaths[i].dlen,
+		                          syspaths[i].lnk, syspaths[i].llen);
 	}
 
 	free (page_buf);
