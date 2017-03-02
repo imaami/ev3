@@ -25,8 +25,13 @@ static size_t EV3_PAGESIZE = 0;
 EV3_INLINE size_t
 ev3_page_size (void);
 
+EV3_INLINE void
+ev3_server_init (ev3_server_t *server,
+                 uint8_t      *buf,
+                 size_t        buf_len);
+
 ev3_server_t *
-ev3_server_alloc (void)
+ev3_server_new (void)
 {
 	ev3_server_t *s = NULL;
 	int e = 0;
@@ -44,16 +49,14 @@ ev3_server_alloc (void)
 	buf = (uint8_t *)ev3_aligned_alloc (EV3_PAGESIZE, buf_len, &e);
 
 	if (buf == NULL) {
-		ERR_ (-3, "Can't allocate memory for work buffer: %s",
+		ERR_ (-3, "Can't allocate memory for internal buffer: %s",
 		      (e != 0) ? strerror (e) : EV3_NOERRNO);
 		free ((void *)s);
 		s = NULL;
 		e = 0;
 
 	} else {
-		memset (s, 0, sizeof (ev3_server_t));
-		s->buf = buf;
-		s->buf_len = buf_len;
+		ev3_server_init (s, buf, buf_len);
 		buf = NULL;
 	}
 
@@ -63,34 +66,21 @@ ev3_server_alloc (void)
 }
 
 void
-ev3_server_init (ev3_server_t *server)
+ev3_server_delete (ev3_server_t *server)
 {
 	if (server != NULL) {
-		uint_fast8_t i = 0;
-		do {
-			ev3_port_t *port = &server->port[i];
-			ev3_port_init (port, i);
-		} while (++i < 8);
-	}
-}
-
-void
-ev3_server_free (ev3_server_t **server)
-{
-	if (server != NULL) {
-		ev3_server_t *s = *server;
-		if (s != NULL) {
-			if (s->buf != NULL) {
-				if (s->buf_len > 0) {
-					memset (s->buf, 0, s->buf_len);
-				}
-				free (s->buf);
+		if (server->buf != NULL) {
+			if (server->buf_len > 0) {
+				memset (server->buf, 0, server->buf_len);
 			}
-			memset (s, 0, sizeof (ev3_server_t));
-			free (s);
-			s = NULL;
-			*server = s;
+
+			free (server->buf);
 		}
+
+		memset (server, 0, sizeof (ev3_server_t));
+
+		free (server);
+		server = NULL;
 	}
 }
 
@@ -115,6 +105,24 @@ ev3_page_size (void)
 	}
 
 	return EV3_PAGESIZE;
+}
+
+EV3_INLINE void
+ev3_server_init (ev3_server_t *server,
+                 uint8_t      *buf,
+                 size_t        buf_len)
+{
+	uint_fast8_t i = 0;
+
+	memset (server, 0, sizeof (ev3_server_t));
+
+	do {
+		ev3_port_t *port = &server->port[i];
+		ev3_port_init (port, i);
+	} while (++i < 8);
+
+	server->buf = buf;
+	server->buf_len = buf_len;
 }
 
 #ifdef __cplusplus

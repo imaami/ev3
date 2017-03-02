@@ -8,13 +8,10 @@ extern "C" {
 typedef struct ev3_server ev3_server_t;
 
 extern ev3_server_t *
-ev3_server_alloc (void);
+ev3_server_new (void);
 
 extern void
-ev3_server_init (ev3_server_t *server);
-
-extern void
-ev3_server_free (ev3_server_t **server);
+ev3_server_delete (ev3_server_t *server);
 
 #ifdef __cplusplus
 }
