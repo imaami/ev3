@@ -21,6 +21,8 @@ ev3_read_file (char    *path,
 		(void)ev3_fclose (&fp);
 	}
 
+	buf[len] = 0;
+
 	return len;
 }
 

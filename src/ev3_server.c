@@ -206,7 +206,7 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 		}
 		n -= sizeof ("address") - 1; // offset for filename
 
-		MSG ("%s -> %s", path, (char *)buf);
+		//MSG ("%s -> %s", path, (char *)buf);
 
 		size_t alloc_len = ev3_port_syspath_buf_len_from_dir_len (n - 1);
 		char *port_path_buf = aligned_alloc (4, alloc_len);
@@ -216,13 +216,24 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 		}
 		strncpy (port_path_buf, (const char *)buf, alloc_len);
 
-		if (ev3_read_file (port_path_buf, buf, buf_len - 1)) {
-			MSG ("address: %s", (char *)buf);
+		(void)ev3_read_file (port_path_buf, buf, buf_len - 1);
+		port_path_buf[n] = '\0';
+
+		uint_fast8_t port_id;
+		if (!ev3_port_id_from_address ((const char *)buf, &port_id)) {
+			free (port_path_buf);
+			continue;
 		}
 
-		strncpy (&port_path_buf[n], "driver_name", sizeof ("driver_name"));
-		if (ev3_read_file (port_path_buf, buf, buf_len - 1)) {
-			MSG ("driver_name: %s", (char *)buf);
+		ev3_port_t *port = &server->port[port_id];
+		ev3_port_set_syspath_buf (port, port_path_buf, alloc_len, n);
+
+		ev3_port_address (port, (char *)buf);
+		MSG ("%s: %s", (char *)buf, port->syspath.buf);
+
+		strncpy (&port->syspath.buf[port->syspath.dir_len], "driver_name", sizeof ("driver_name"));
+		if (ev3_read_file (port->syspath.buf, buf + 8, buf_len - 9)) {
+			MSG ("driver_name: %s", (char *)buf + 8);
 		}
 /*
 		strncpy (&port_path_buf[n], "modes", sizeof ("modes"));
@@ -235,7 +246,6 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 			MSG ("commands: %s", (char *)buf);
 		}
 */
-		free (port_path_buf);
 	}
 
 _done:
