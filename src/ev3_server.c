@@ -2,6 +2,8 @@
 #include "ev3_common.h"
 #include "ev3_port.h"
 #include "ev3_mem.h"
+#include "ev3_syspath.h"
+#include "ev3_io.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,6 +109,139 @@ ev3_page_size (void)
 	return EV3_PAGESIZE;
 }
 
+static EV3_SYSPATH_LIST(_ev3_server_syspaths) {
+	EV3_SYSPATH("lego-sensor", "sensor"),
+	EV3_SYSPATH("tacho-motor", "motor")
+};
+
+EV3_INLINE void
+ev3_server_probe_syspath (ev3_server_t        *server,
+                          const ev3_syspath_t *sp)
+{
+	uint8_t *buf = server->buf;
+	size_t buf_len = server->buf_len;
+	const char *subdir = sp->dir;
+	size_t subdir_len = sp->dlen;
+	const char *symlink_prefix = sp->lnk;
+	size_t symlink_prefix_len = sp->llen;
+	char path[64] = {'/','s','y','s','/','c','l','a','s','s','/','\0'};
+	size_t off = sizeof ("/sys/class/") - 1;
+	size_t have = sizeof (path) - sizeof ("/sys/class/"
+	                                      "/"
+	                                      "/address");
+	DIR *dir;
+	int e;
+
+	if (have < subdir_len) {
+	_overflow:
+		ERR ("Path buffer would overflow");
+		return;
+	}
+	have -= subdir_len;
+	if (symlink_prefix_len > 0) {
+		if (have < symlink_prefix_len) {
+			goto _overflow;
+		}
+		have -= symlink_prefix_len;
+	}
+
+	memcpy (&path[off], subdir, subdir_len);
+	path[(off += subdir_len)] = '\0';
+
+	if (ev3_opendir ((const char *)path, &dir) != 0) {
+		return;
+	}
+
+	path[off++] = '/';
+
+	if (symlink_prefix_len > 0) {
+		memcpy (&path[off], symlink_prefix, symlink_prefix_len);
+		off += symlink_prefix_len;
+	}
+
+	for (struct dirent *ent;;) {
+		(void)ev3_readdir (dir, &ent);
+		if (ent == NULL) {
+			break;
+		}
+
+		if (ent->d_type != DT_LNK) {
+			continue;
+		}
+
+		const char *name = (const char *)&ent->d_name[0];
+
+		if (symlink_prefix_len > 0) {
+			if (strncmp (name, symlink_prefix,
+			             symlink_prefix_len) != 0) {
+				continue;
+			}
+			name += symlink_prefix_len;
+		}
+
+		char *dest = &path[off];
+		size_t n = have;
+
+		while (*name) {
+			if (n == 0) {
+				ERR ("Path buffer would overflow");
+				goto _next_dirent;
+			}
+			*dest++ = *name++;
+			--n;
+		}
+
+		strncpy (dest, "/address", sizeof ("/address"));
+
+		if (ev3_realpath ((const char *)path, (char *)buf) != 0) {
+		_next_dirent:
+			continue;
+		}
+
+		n = strlen ((const char *)buf);
+		if (n < sizeof ("address") - 1) {
+			ERR_ (-7, "Can't get syspath: String returned by "
+			          "realpath() too short for a valid path");
+			continue;
+		}
+		n -= sizeof ("address") - 1; // offset for filename
+
+		MSG ("%s -> %s", path, (char *)buf);
+
+		size_t alloc_len = ev3_port_syspath_buf_len_from_dir_len (n - 1);
+		char *port_path_buf = aligned_alloc (4, alloc_len);
+		if (!port_path_buf) {
+			ERR ("aligned_alloc() failed");
+			continue;
+		}
+		strncpy (port_path_buf, (const char *)buf, alloc_len);
+
+		if (ev3_read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("address: %s", (char *)buf);
+		}
+
+		strncpy (&port_path_buf[n], "driver_name", sizeof ("driver_name"));
+		if (ev3_read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("driver_name: %s", (char *)buf);
+		}
+/*
+		strncpy (&port_path_buf[n], "modes", sizeof ("modes"));
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("modes: %s", (char *)buf);
+		}
+
+		strncpy (&port_path_buf[n], "commands", sizeof ("commands"));
+		if (read_file (port_path_buf, buf, buf_len - 1)) {
+			MSG ("commands: %s", (char *)buf);
+		}
+*/
+		free (port_path_buf);
+	}
+
+_done:
+	(void)ev3_closedir (&dir);
+}
+
 EV3_INLINE void
 ev3_server_init (ev3_server_t *server,
                  uint8_t      *buf,
@@ -123,6 +258,10 @@ ev3_server_init (ev3_server_t *server,
 
 	server->buf = buf;
 	server->buf_len = buf_len;
+
+	for (size_t i = 0; i < sizeof (_ev3_server_syspaths) / sizeof (_ev3_server_syspaths[0]); ++i) {
+		ev3_server_probe_syspath (server, &_ev3_server_syspaths[i]);
+	}
 }
 
 #ifdef __cplusplus

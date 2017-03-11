@@ -24,6 +24,11 @@ extern "C" {
 # include <string.h>  // strerror()
 #endif // EV3_IO_DEBUG
 
+extern size_t
+ev3_read_file (char    *path,
+               uint8_t *buf,
+               size_t   buf_len);
+
 EV3_INLINE int
 ev3_fopen (const char  *path,
            const char  *mode,

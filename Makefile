@@ -7,7 +7,3 @@ all:
 
 clean:
 	+make -C src clean
-
-# temporary
-dirtest:
-	+make -C src dirtest

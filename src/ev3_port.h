@@ -12,6 +12,8 @@ extern "C" {
 #include <stdint.h>  // uint_fast8_t
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>  // strerror()
 
 typedef struct ev3_port ev3_port_t;
 
@@ -19,7 +21,8 @@ struct ev3_port {
 	uint_fast8_t id;
 	struct {
 		char   *buf;
-		size_t  len;
+		size_t  buf_len;
+		size_t  dir_len;
 	} syspath;
 	struct {
 		FILE *mode;
@@ -31,6 +34,12 @@ ev3_port_init (ev3_port_t   *port,
                uint_fast8_t  id)
 {
 	port->id = id;
+
+	port->syspath.buf = NULL;
+	port->syspath.buf_len = 0;
+	port->syspath.dir_len = 0;
+
+	port->fp.mode = NULL;
 }
 
 EV3_INLINE bool
@@ -96,6 +105,58 @@ ev3_port_address (ev3_port_t *port,
 
 	*addr++ = 49 + o + (c & 3);
 	*addr = '\0';
+}
+
+EV3_INLINE size_t
+ev3_port_syspath_buf_len_from_dir_len (size_t len)
+{
+	size_t n = (len += 17) & 3;
+	if (n != 0) {
+		len += 4 - n;
+	}
+	return len;
+}
+
+EV3_INLINE void
+ev3_port_set_syspath_buf (ev3_port_t *port,
+                          char       *buf,
+                          size_t      buf_len,
+                          size_t      dir_len)
+{
+	port->syspath.buf = buf;
+	port->syspath.buf_len = buf_len;
+	port->syspath.dir_len = dir_len;
+}
+
+EV3_INLINE char *
+ev3_port_get_syspath_buf (ev3_port_t *port,
+                          size_t      dir_len)
+{
+	char *buf = port->syspath.buf;
+	size_t buf_len = ev3_port_syspath_buf_len_from_dir_len (dir_len);
+
+	if (buf != NULL) {
+		if (port->syspath.buf_len >= buf_len) {
+			return buf;
+		}
+
+		free (buf);
+		buf = NULL;
+		ev3_port_set_syspath_buf (port, NULL, 0, 0);
+	}
+
+	errno = 0;
+
+	if ((buf = aligned_alloc (4, buf_len)) == NULL) {
+		ERR_ (-1, "Can't allocate port syspath"
+		          " buffer: %s", strerror (errno));
+		return NULL;
+	}
+
+	port->syspath.buf = buf;
+	port->syspath.buf_len = buf_len;
+
+	return buf;
 }
 
 #ifdef __cplusplus
