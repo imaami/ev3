@@ -4,6 +4,7 @@
 #include "ev3_mem.h"
 #include "ev3_syspath.h"
 #include "ev3_io.h"
+#include "ev3_driver.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -216,25 +217,29 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 		}
 		strncpy (port_path_buf, (const char *)buf, alloc_len);
 
-		(void)ev3_read_file (port_path_buf, buf, buf_len - 1);
-		port_path_buf[n] = '\0';
-
 		uint_fast8_t port_id;
-		if (!ev3_port_id_from_address ((const char *)buf, &port_id)) {
-			free (port_path_buf);
-			continue;
+		ev3_port_t *port;
+		const ev3_driver_t *drv;
+
+		(void)ev3_read_file (port_path_buf, buf, buf_len - 1);
+		if (ev3_port_id_from_address ((const char *)buf, &port_id)) {
+			strncpy (&port_path_buf[n], "driver_name",
+			         sizeof ("driver_name"));
+			if (ev3_read_file (port_path_buf, buf, buf_len - 1) &&
+			    (drv = ev3_driver_by_name ((const char *)buf))) {
+				port_path_buf[n] = '\0';
+				port = &server->port[port_id];
+				ev3_port_set_syspath_buf (port, port_path_buf,
+				                          alloc_len, n);
+				ev3_port_address (port, (char *)buf);
+				MSG ("%s: %s (%s)", (char *)buf, drv->name,
+				                    port->syspath.buf);
+				continue;
+			}
 		}
 
-		ev3_port_t *port = &server->port[port_id];
-		ev3_port_set_syspath_buf (port, port_path_buf, alloc_len, n);
+		free (port_path_buf);
 
-		ev3_port_address (port, (char *)buf);
-		MSG ("%s: %s", (char *)buf, port->syspath.buf);
-
-		strncpy (&port->syspath.buf[port->syspath.dir_len], "driver_name", sizeof ("driver_name"));
-		if (ev3_read_file (port->syspath.buf, buf + 8, buf_len - 9)) {
-			MSG ("driver_name: %s", (char *)buf + 8);
-		}
 /*
 		strncpy (&port_path_buf[n], "modes", sizeof ("modes"));
 		if (read_file (port_path_buf, buf, buf_len - 1)) {
