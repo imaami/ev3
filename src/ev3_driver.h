@@ -7,10 +7,33 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <stdio.h> // FILE
+
 typedef struct ev3_driver {
-	int        foobar;
+	struct {
+		union {
+			FILE *mode;
+			FILE *command;
+		};
+		union {
+			FILE *modes;
+			FILE *commands;
+		};
+	} fp;
 	const char name[];
 } ev3_driver_t;
+
+#define EV3_INPUT_DRIVER(X, Y) const ev3_driver_t X = {\
+	.fp.mode = NULL,\
+	.fp.modes = NULL,\
+	.name = Y\
+}
+
+#define EV3_OUTPUT_DRIVER(X, Y) const ev3_driver_t X = {\
+	.fp.command = NULL,\
+	.fp.commands = NULL,\
+	.name = Y\
+}
 
 extern const ev3_driver_t ev3_driver_color;
 extern const ev3_driver_t ev3_driver_ir;

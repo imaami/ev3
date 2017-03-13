@@ -2,6 +2,7 @@
 #define _EV3_PORT_H
 
 #include "ev3_common.h"
+#include "ev3_driver.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,9 +25,7 @@ struct ev3_port {
 		size_t  buf_len;
 		size_t  dir_len;
 	} syspath;
-	struct {
-		FILE *mode;
-	} fp;
+	const ev3_driver_t *drv;
 };
 
 EV3_INLINE void
@@ -39,7 +38,7 @@ ev3_port_init (ev3_port_t   *port,
 	port->syspath.buf_len = 0;
 	port->syspath.dir_len = 0;
 
-	port->fp.mode = NULL;
+	port->drv = NULL;
 }
 
 EV3_INLINE bool
@@ -126,6 +125,13 @@ ev3_port_set_syspath_buf (ev3_port_t *port,
 	port->syspath.buf = buf;
 	port->syspath.buf_len = buf_len;
 	port->syspath.dir_len = dir_len;
+}
+
+EV3_INLINE void
+ev3_port_set_driver (ev3_port_t         *port,
+                     const ev3_driver_t *drv)
+{
+	port->drv = drv;
 }
 
 EV3_INLINE char *

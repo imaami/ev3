@@ -5,9 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-const ev3_driver_t ev3_driver_color = {
-	.name = "lego-ev3-color"
-};
+EV3_INPUT_DRIVER(ev3_driver_color, "lego-ev3-color");
 
 #ifdef __cplusplus
 }

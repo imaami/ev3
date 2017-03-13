@@ -5,9 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-const ev3_driver_t ev3_driver_l_motor = {
-	.name = "lego-ev3-l-motor"
-};
+EV3_OUTPUT_DRIVER(ev3_driver_l_motor, "lego-ev3-l-motor");
 
 #ifdef __cplusplus
 }

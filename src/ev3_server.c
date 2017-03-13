@@ -231,6 +231,7 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 				port = &server->port[port_id];
 				ev3_port_set_syspath_buf (port, port_path_buf,
 				                          alloc_len, n);
+				ev3_port_set_driver(port, drv);
 				ev3_port_address (port, (char *)buf);
 				MSG ("%s: %s (%s)", (char *)buf, drv->name,
 				                    port->syspath.buf);

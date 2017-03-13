@@ -5,9 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-const ev3_driver_t ev3_driver_touch = {
-	.name = "lego-ev3-touch"
-};
+EV3_INPUT_DRIVER(ev3_driver_touch, "lego-ev3-touch");
 
 #ifdef __cplusplus
 }
