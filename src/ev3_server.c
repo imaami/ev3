@@ -125,7 +125,7 @@ ev3_server_probe_syspath (ev3_server_t        *server,
 	size_t subdir_len = sp->dlen;
 	const char *symlink_prefix = sp->lnk;
 	size_t symlink_prefix_len = sp->llen;
-	char path[64] = {'/','s','y','s','/','c','l','a','s','s','/','\0'};
+	char path[64] = "/sys/class/";
 	size_t off = sizeof ("/sys/class/") - 1;
 	size_t have = sizeof (path) - sizeof ("/sys/class/"
 	                                      "/"
